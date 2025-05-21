@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title th:text="#{dashboard.title}">Kullanıcı Paneli</title>
+    <meta charset="UTF-8"/>
+    <link rel="stylesheet" th:href="@{/css/style.css}"/>
+</head>
+<body>
+<h2 th:text="#{dashboard.welcome(${user.fullName})}">Hoş Geldin!</h2>
+<p th:text="#{dashboard.points} + ': ' + ${user.points}">Puanların: </p>
+<p th:text="#{dashboard.role} + ': ' + ${user.role}">Rol: </p>
+<a th:href="@{/surveys}" th:text="#{dashboard.surveys.link}">Anketlere Git</a>
+</body>
+</html>

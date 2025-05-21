@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <title th:text="#{survey.vote.title}">Ankete Oy Ver</title>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <link rel="stylesheet" th:href="@{/css/style.css}"/>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+  <div class="container">
+    <a class="navbar-brand" href="#" th:text="#{app.name}">Anket Sistemi</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item">
+          <a class="nav-link" th:href="@{/surveys}" th:text="#{nav.surveys}">Anketler</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" th:href="@{/surveys/my-surveys}" th:text="#{nav.my.surveys}">Kendi Anketlerim</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" th:href="@{/surveys/create}" th:text="#{nav.create.survey}">Yeni Anket Oluştur</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" th:href="@{/rewards}">
+            <i class="bi bi-coin"></i> Puanlarım
+          </a>
+        </li>
+      </ul>
+      <div class="d-flex align-items-center">
+        <!-- Karanlık Mod Düğmesi -->
+        <button id="darkModeToggle" class="btn btn-outline-light me-2">
+          <i class="bi bi-moon-fill"></i>
+        </button>
+        
+        <!-- Dil Seçimi -->
+        <div class="dropdown me-2">
+          <button class="btn btn-outline-light dropdown-toggle" type="button" id="languageDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+            <span th:text="${#locale.language == 'tr' ? 'TR' : 'EN'}">Dil</span>
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="languageDropdown">
+            <li><a class="dropdown-item" th:href="@{/surveys/{id}(id=${survey.id},lang=tr)}">Türkçe</a></li>
+            <li><a class="dropdown-item" th:href="@{/surveys/{id}(id=${survey.id},lang=en)}">English</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<div class="container mt-4">
+  <div class="card">
+    <div class="card-header bg-primary text-white">
+      <h2 th:text="#{survey.vote.title}">Ankete Oy Ver</h2>
+    </div>
+    <div class="card-body">
+      <div th:if="${success}" class="alert alert-success" th:text="${success}">Başarılı!</div>
+      <div th:if="${error}" class="alert alert-danger" th:text="${error}">Hata!</div>
+      
+      <div th:if="${survey != null}">
+        <h3 th:text="${survey.title}">Anket Başlığı</h3>
+        <p class="lead" th:text="${survey.description}">Anket açıklaması</p>
+        
+        <div th:if="${!survey.active}" class="alert alert-warning">
+          <i class="bi bi-exclamation-triangle-fill"></i> <span th:text="#{survey.inactive}">Bu anket artık aktif değil.</span>
+        </div>
+        
+        <div th:if="${survey.questions == null || survey.questions.isEmpty()}" class="alert alert-info">
+          <p th:text="#{survey.no.questions}">Bu ankette soru bulunmamaktadır.</p>
+        </div>
+        
+        <form th:if="${survey.active && survey.questions != null && !survey.questions.isEmpty()}" 
+              th:action="@{/surveys/{id}/vote(id=${survey.id})}" method="post">
+          
+          <div class="mb-4" th:each="question : ${survey.questions}">
+            <div class="card">
+              <div class="card-header">
+                <h5 th:text="${question.text}">Soru</h5>
+              </div>
+              <div class="card-body">
+                <div th:each="option : ${question.options}" class="form-check">
+                  <input class="form-check-input" type="radio" 
+                         th:name="${'option-' + question.id}" 
+                         th:id="${'option-' + question.id + '-' + option.id}" 
+                         th:value="${option.id}" required>
+                  <label class="form-check-label" 
+                         th:for="${'option-' + question.id + '-' + option.id}" 
+                         th:text="${option.text}">Seçenek</label>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="d-grid">
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-check-circle-fill"></i> <span th:text="#{survey.vote}">Oy Ver</span>
+            </button>
+          </div>
+        </form>
+      </div>
+      <div th:if="${survey == null}" class="alert alert-danger">
+        <p th:text="#{survey.not.found}">Anket bulunamadı</p>
+      </div>
+    </div>
+    <div class="card-footer">
+      <a th:href="@{/surveys}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> <span th:text="#{survey.back.to.surveys}">Anketlere Dön</span>
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Bootstrap JS ve Popper.js -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Karanlık Mod Scripti -->
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const darkModeToggle = document.getElementById('darkModeToggle');
+    const htmlElement = document.documentElement;
+    const iconElement = darkModeToggle.querySelector('i');
+    
+    // Sayfa yüklendiğinde kullanıcı tercihini kontrol et
+    const darkMode = localStorage.getItem('darkMode') === 'true';
+    if (darkMode) {
+      htmlElement.setAttribute('data-bs-theme', 'dark');
+      iconElement.classList.remove('bi-moon-fill');
+      iconElement.classList.add('bi-sun-fill');
+    }
+    
+    // Karanlık mod düğmesi tıklama olayı
+    darkModeToggle.addEventListener('click', function() {
+      const isDarkMode = htmlElement.getAttribute('data-bs-theme') === 'dark';
+      
+      if (isDarkMode) {
+        htmlElement.removeAttribute('data-bs-theme');
+        iconElement.classList.remove('bi-sun-fill');
+        iconElement.classList.add('bi-moon-fill');
+        localStorage.setItem('darkMode', 'false');
+      } else {
+        htmlElement.setAttribute('data-bs-theme', 'dark');
+        iconElement.classList.remove('bi-moon-fill');
+        iconElement.classList.add('bi-sun-fill');
+        localStorage.setItem('darkMode', 'true');
+      }
+    });
+    
+    // İlerleme çubuğunu güncelle
+    updateProgress();
+    
+    // Seçenek seçildiğinde ilerleme çubuğunu güncelle
+    document.querySelectorAll('.question-option').forEach(option => {
+      option.addEventListener('change', updateProgress);
+    });
+  });
+  
+  // İlerleme çubuğunu güncelleme fonksiyonu
+  function updateProgress() {
+    const totalQuestions = document.querySelectorAll('.card-header h5').length;
+    let answeredQuestions = 0;
+    
+    // Her soru için bir seçenek seçilip seçilmediğini kontrol et
+    const questionGroups = {};
+    document.querySelectorAll('.question-option:checked').forEach(option => {
+      const questionIndex = option.getAttribute('data-question');
+      questionGroups[questionIndex] = true;
+    });
+    
+    answeredQuestions = Object.keys(questionGroups).length;
+    
+    const progressPercentage = Math.round((answeredQuestions / totalQuestions) * 100);
+    
+    const progressBar = document.getElementById('progressBar');
+    progressBar.style.width = progressPercentage + '%';
+    progressBar.setAttribute('aria-valuenow', progressPercentage);
+    progressBar.textContent = progressPercentage + '%';
+  }
+</script>
+</body>
+</html>

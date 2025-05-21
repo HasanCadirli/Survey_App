@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Admin Paneli</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding: 20px;
+            font-family: Arial, sans-serif;
+        }
+        h1, h2, h3 {
+            color: #333;
+        }
+        .simple-card {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .simple-card-header {
+            padding: 10px 15px;
+            background-color: #f5f5f5;
+            border-bottom: 1px solid #ddd;
+            font-weight: bold;
+        }
+        .table-container {
+            overflow-x: auto;
+        }
+        .btn {
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <h1>Admin Paneli</h1>
+                <p>Kullanıcıları görüntüleyebilir ve anketleri pasife alabilirsiniz.</p>
+                <a href="http://localhost:9090/SNAPSHOT/surveys" class="btn btn-primary">Ana Sayfaya Dön</a>
+            </div>
+        </div>
+
+        <!-- Bildirimler -->
+        <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
+            <strong>Başarılı!</strong> <span th:text="${success}">İşlem başarıyla tamamlandı!</span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        
+        <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+            <strong>Hata!</strong> <span th:text="${error}">Bir hata oluştu!</span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+
+        <!-- Anketler Bölümü -->
+        <div class="simple-card">
+            <div class="simple-card-header">
+                <h2>Anketler</h2>
+            </div>
+            <div class="card-body">
+                <div class="table-container">
+                    <table class="table table-striped" th:if="${surveys != null && !surveys.empty}">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Başlık</th>
+                                <th>Açıklama</th>
+                                <th>Oluşturan</th>
+                                <th>İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="survey : ${surveys}">
+                                <td th:text="${survey.id}">1</td>
+                                <td th:text="${survey.title}">Anket Başlığı</td>
+                                <td th:text="${survey.description}">Açıklama</td>
+                                <td th:text="${survey.createdBy.email}">kullanici@example.com</td>
+                                <td>
+                                    <form th:action="@{/admin/deactivate-survey}" method="post" class="d-inline">
+                                        <input type="hidden" name="surveyId" th:value="${survey.id}"/>
+                                        <button type="submit" class="btn btn-warning btn-sm" 
+                                                onclick="return confirm('Bu anketi pasifleştirmek istediğinize emin misiniz?')">
+                                            Pasif Yap
+                                        </button>
+                                    </form>
+                                    <a th:href="@{/surveys/{id}(id=${survey.id})}" class="btn btn-primary btn-sm">Görüntüle</a>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div class="alert alert-info" th:if="${surveys == null || surveys.empty}">
+                        Aktif anket bulunmamaktadır.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Kullanıcılar Bölümü -->
+        <div class="simple-card">
+            <div class="simple-card-header">
+                <h2>Kullanıcılar</h2>
+            </div>
+            <div class="card-body">
+                <div class="table-container">
+                    <table class="table table-striped" th:if="${users != null && !users.empty}">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Ad Soyad</th>
+                                <th>E-posta</th>
+                                <th>Puan</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="user : ${users}">
+                                <td th:text="${user.id}">1</td>
+                                <td th:text="${user.fullName}">Ad Soyad</td>
+                                <td th:text="${user.email}">email@example.com</td>
+                                <td th:text="${user.points}">0</td>
+                                <td>
+                                    <form th:action="@{/admin/delete-user}" method="post" class="d-inline">
+                                        <input type="hidden" name="userId" th:value="${user.id}"/>
+
+                                    </form>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div class="alert alert-info" th:if="${users == null || users.empty}">
+                        Kullanıcı bulunmamaktadır.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html> 

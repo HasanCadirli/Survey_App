@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Puanlarım ve Ödüller</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" th:href="@{/css/style.css}"/>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container">
+        <a class="navbar-brand" href="#" th:text="#{app.name}">Anket Sistemi</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item">
+                    <a class="nav-link" th:href="@{/surveys}" th:text="#{nav.surveys}">Anketler</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" th:href="@{/surveys/my-surveys}" th:text="#{nav.my.surveys}">Kendi Anketlerim</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" th:href="@{/surveys/create}" th:text="#{nav.create.survey}">Yeni Anket Oluştur</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" th:href="@{/rewards}">
+                        <i class="bi bi-coin"></i> Puanlarım
+                    </a>
+                </li>
+                <li class="nav-item" th:if="${user != null && user.role == 'admin'}">
+                    <a class="nav-link" th:href="@{/admin}" th:text="#{nav.admin.panel}">Admin Paneli</a>
+                </li>
+            </ul>
+            <div class="d-flex align-items-center">
+                <!-- Karanlık Mod Düğmesi -->
+                <button id="darkModeToggle" class="btn btn-outline-light me-2">
+                    <i class="bi bi-moon-fill"></i>
+                </button>
+                
+                <!-- Dil Seçimi -->
+                <div class="dropdown me-2">
+                    <button class="btn btn-outline-light dropdown-toggle" type="button" id="languageDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <span th:text="${#locale.language == 'tr' ? 'TR' : 'EN'}">Dil</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="languageDropdown">
+                        <li><a class="dropdown-item" th:href="@{/rewards(lang=tr)}">Türkçe</a></li>
+                        <li><a class="dropdown-item" th:href="@{/rewards(lang=en)}">English</a></li>
+                    </ul>
+                </div>
+                
+                <!-- Kullanıcı Bilgisi ve Çıkış -->
+                <div class="dropdown">
+                    <button class="btn btn-outline-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-person-fill"></i> <span th:text="${loggedInUser}">Kullanıcı</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                        <li><span class="dropdown-item-text" th:text="#{user.points} + ': ' + ${userPoints}">Puanınız: 0</span></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" th:href="@{/logout}" th:text="#{nav.logout}">Çıkış Yap</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="container mt-4">
+    <!-- Uyarı ve Bildirimler -->
+    <div th:if="${param.success}" class="alert alert-success" th:text="${param.success}"></div>
+    <div th:if="${param.error}" class="alert alert-danger" th:text="${param.error}"></div>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h2><i class="bi bi-coin"></i> Puanlarınız</h2>
+                </div>
+                <div class="card-body">
+                    <h3 class="display-4 text-center" th:text="${userPoints}">0</h3>
+                    <p class="text-center">Her soru başına 5 puan kazanırsınız.</p>
+                    <p class="text-center">1 Puan = 1 ETH olarak çevrilebilir.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h2><i class="bi bi-currency-exchange"></i> ETH'ye Çevir</h2>
+                </div>
+                <div class="card-body">
+                    <div th:if="${!hasWallet}" class="alert alert-warning">
+                        <p>ETH alabilmek için Ethereum cüzdanı ile kayıt olmuş bir kullanıcı olmanız gerekiyordu,yeni hesap oluşturun.</p>
+
+
+                    </div>
+                    
+                    <div th:if="${hasWallet}" id="walletConnected">
+                        <p>Bağlı Cüzdan: <span id="walletAddressDisplay" th:text="${walletAddress}" class="text-primary"></span></p>
+                        
+                        <form th:action="@{/rewards/convert}" method="post">
+                            <div class="mb-3">
+                                <label for="points" class="form-label">Çevrilecek Puan Miktarı</label>
+                                <input type="number" class="form-control" id="points" name="points" min="1" th:max="${userPoints}" th:value="${userPoints > 0 ? userPoints : 1}" required>
+                                <small class="form-text text-muted">Bir seferde en fazla 100 ETH çekebilirsiniz.</small>
+                            </div>
+                            <input type="hidden" id="walletAddress" name="walletAddress" th:value="${walletAddress}">
+                            <button type="submit" class="btn btn-success" th:disabled="${userPoints <= 0}">
+                                <i class="bi bi-arrow-right-circle"></i> Puanları ETH'ye Çevir
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card mb-4">
+        <div class="card-header">
+            <h2><i class="bi bi-info-circle"></i> ETH Çekim Bilgileri</h2>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-info">
+                <h5>Sepolia Test Ağı</h5>
+                <p>ETH ödemeleri, Sepolia test ağı üzerinden yapılmaktadır. Bu ETH'ler gerçek değere sahip değildir ve sadece test amaçlıdır.</p>
+            </div>
+            <ul>
+                <li>Ağ Adı: <strong>Sepolia Testnet</strong></li>
+                <li>Chain ID: <strong th:text="${chainId}">11155112</strong></li>
+                <li>RPC URL: <strong th:text="${rpcUrl}">https://virtual.sepolia.rpc.tenderly.co/...</strong></li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap JS ve Popper.js -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Web3.js -->
+<script src="https://cdn.jsdelivr.net/npm/web3@1.8.1/dist/web3.min.js"></script>
+
+<!-- Karanlık Mod Scripti -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const darkModeToggle = document.getElementById('darkModeToggle');
+        const htmlElement = document.documentElement;
+        const iconElement = darkModeToggle.querySelector('i');
+        
+        // Sayfa yüklendiğinde kullanıcı tercihini kontrol et
+        const darkMode = localStorage.getItem('darkMode') === 'true';
+        if (darkMode) {
+            htmlElement.setAttribute('data-bs-theme', 'dark');
+            iconElement.classList.remove('bi-moon-fill');
+            iconElement.classList.add('bi-sun-fill');
+        }
+        
+        // Karanlık mod düğmesi tıklama olayı
+        darkModeToggle.addEventListener('click', function() {
+            const isDarkMode = htmlElement.getAttribute('data-bs-theme') === 'dark';
+            
+            if (isDarkMode) {
+                htmlElement.removeAttribute('data-bs-theme');
+                iconElement.classList.remove('bi-sun-fill');
+                iconElement.classList.add('bi-moon-fill');
+                localStorage.setItem('darkMode', 'false');
+            } else {
+                htmlElement.setAttribute('data-bs-theme', 'dark');
+                iconElement.classList.remove('bi-moon-fill');
+                iconElement.classList.add('bi-sun-fill');
+                localStorage.setItem('darkMode', 'true');
+            }
+        });
+    });
+</script>
+
+<!-- Ethereum Cüzdan Bağlantı Scripti -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const connectWalletBtn = document.getElementById('connectWalletBtn');
+        
+        if (connectWalletBtn) {
+            connectWalletBtn.addEventListener('click', async function() {
+                if (typeof window.ethereum !== 'undefined') {
+                    try {
+                        // MetaMask'tan hesap erişimi iste
+                        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                        const walletAddress = accounts[0];
+                        
+                        // Cüzdan bağlantı verilerini kaydet
+                        const formData = new FormData();
+                        formData.append('walletAddress', walletAddress);
+                        
+                        // Kullanıcı bilgilerini güncelle
+                        fetch('/user/update-wallet', {
+                            method: 'POST',
+                            body: formData
+                        })
+                        .then(response => {
+                            if (response.ok) {
+                                // Başarılı olursa sayfayı yenile
+                                window.location.reload();
+                            } else {
+                                alert('Cüzdan güncellenirken bir hata oluştu. Lütfen tekrar deneyin.');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('Bir hata oluştu: ' + error.message);
+                        });
+                        
+                    } catch (error) {
+                        console.error(error);
+                        alert('Cüzdan bağlantısı sırasında bir hata oluştu: ' + error.message);
+                    }
+                } else {
+                    alert('Ethereum cüzdanı bulunamadı. Lütfen MetaMask yükleyin.');
+                    window.open('https://metamask.io/download.html', '_blank');
+                }
+            });
+        }
+    });
+</script>
+</body>
+</html> 

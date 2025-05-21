@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <title th:text="#{my.surveys.title}">Kendi Anketlerim</title>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <link rel="stylesheet" th:href="@{/css/style.css}"/>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+  <div class="container">
+    <a class="navbar-brand" href="#" th:text="#{app.name}">Anket Sistemi</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item">
+          <a class="nav-link" th:href="@{/surveys}" th:text="#{nav.surveys}">Anketler</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link active" th:href="@{/surveys/my-surveys}" th:text="#{nav.my.surveys}">Kendi Anketlerim</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" th:href="@{/surveys/create}" th:text="#{nav.create.survey}">Yeni Anket Oluştur</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" th:href="@{/rewards}">
+            <i class="bi bi-coin"></i> Puanlarım
+          </a>
+        </li>
+      </ul>
+      <div class="d-flex align-items-center">
+        <!-- Karanlık Mod Düğmesi -->
+        <button id="darkModeToggle" class="btn btn-outline-light me-2">
+          <i class="bi bi-moon-fill"></i>
+        </button>
+        
+        <!-- Dil Seçimi -->
+        <div class="dropdown me-2">
+          <button class="btn btn-outline-light dropdown-toggle" type="button" id="languageDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+            <span th:text="${#locale.language == 'tr' ? 'TR' : 'EN'}">Dil</span>
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="languageDropdown">
+            <li><a class="dropdown-item" th:href="@{/surveys/my-surveys(lang=tr)}">Türkçe</a></li>
+            <li><a class="dropdown-item" th:href="@{/surveys/my-surveys(lang=en)}">English</a></li>
+          </ul>
+        </div>
+        
+        <!-- Kullanıcı Bilgisi ve Çıkış -->
+        <div class="dropdown">
+          <button class="btn btn-outline-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-person-fill"></i> <span th:text="${loggedInUser}">Kullanıcı</span>
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+            <li><span class="dropdown-item-text" th:text="#{user.points} + ': ' + ${userPoints}">Puanınız: 0</span></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" th:href="@{/logout}" th:text="#{nav.logout}">Çıkış Yap</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<div class="container mt-4">
+  <div class="card mb-4">
+    <div class="card-header">
+      <h2 th:text="#{my.surveys.title}">Kendi Anketlerim</h2>
+    </div>
+    <div class="card-body">
+      <div class="alert alert-info">
+        <div><span th:text="#{my.surveys.total}">Toplam anket sayınız</span>: <span th:text="${surveys.size()}">0</span></div>
+        <div><span th:text="#{user.points}">Puanınız</span>: <span th:text="${userPoints} ?: '0'">0</span></div>
+      </div>
+      
+      <div th:if="${surveys == null or surveys.isEmpty()}" class="alert alert-warning">
+        <p th:text="#{my.surveys.empty}">Henüz anket oluşturmadınız.</p>
+      </div>
+      
+      <div th:unless="${surveys == null or surveys.isEmpty()}">
+        <h3 th:text="#{my.surveys.list}">Anketleriniz:</h3>
+        <div class="row row-cols-1 row-cols-md-2 g-4">
+          <div class="col" th:each="survey : ${surveys}">
+            <div class="card h-100">
+              <div class="card-body">
+                <h5 class="card-title">
+                  <a th:href="@{/surveys/{id}(id=${survey.id})}" th:text="${survey.title}" class="text-decoration-none">Anket Başlığı</a>
+                </h5>
+                <p class="card-text" th:text="${survey.description}">Açıklama</p>
+                <p class="card-text">
+                  <span th:if="${survey.active}" class="badge bg-success" th:text="#{survey.status.active}">Aktif</span>
+                  <span th:unless="${survey.active}" class="badge bg-secondary" th:text="#{survey.status.inactive}">Pasif</span>
+                </p>
+              </div>
+              <div class="card-footer">
+                <div class="btn-group">
+                  <a th:href="@{/surveys/{id}(id=${survey.id})}" class="btn btn-primary btn-sm" th:text="#{survey.view}">Görüntüle</a>
+                  <a th:href="@{/surveys/{id}/results(id=${survey.id})}" class="btn btn-info btn-sm" th:text="#{survey.results}">Sonuçlar</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bootstrap JS ve Popper.js -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Karanlık Mod Scripti -->
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const darkModeToggle = document.getElementById('darkModeToggle');
+    const htmlElement = document.documentElement;
+    const iconElement = darkModeToggle.querySelector('i');
+    
+    // Sayfa yüklendiğinde kullanıcı tercihini kontrol et
+    const darkMode = localStorage.getItem('darkMode') === 'true';
+    if (darkMode) {
+      htmlElement.setAttribute('data-bs-theme', 'dark');
+      iconElement.classList.remove('bi-moon-fill');
+      iconElement.classList.add('bi-sun-fill');
+    }
+    
+    // Karanlık mod düğmesi tıklama olayı
+    darkModeToggle.addEventListener('click', function() {
+      const isDarkMode = htmlElement.getAttribute('data-bs-theme') === 'dark';
+      
+      if (isDarkMode) {
+        htmlElement.removeAttribute('data-bs-theme');
+        iconElement.classList.remove('bi-sun-fill');
+        iconElement.classList.add('bi-moon-fill');
+        localStorage.setItem('darkMode', 'false');
+      } else {
+        htmlElement.setAttribute('data-bs-theme', 'dark');
+        iconElement.classList.remove('bi-moon-fill');
+        iconElement.classList.add('bi-sun-fill');
+        localStorage.setItem('darkMode', 'true');
+      }
+    });
+  });
+</script>
+</body>
+</html>

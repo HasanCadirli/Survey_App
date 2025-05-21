@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Anket Detayı</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" th:href="@{/css/style.css}"/>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="#">Anket Sistemi</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/surveys}">Anketler</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/surveys/my-surveys}">Kendi Anketlerim</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/surveys/create}">Yeni Anket Oluştur</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/rewards}">
+                            <i class="bi bi-coin"></i> Puanlarım
+                        </a>
+                    </li>
+                </ul>
+                <div class="d-flex align-items-center">
+                    <!-- Karanlık Mod Düğmesi -->
+                    <button id="darkModeToggle" class="btn btn-outline-light me-2">
+                        <i class="bi bi-moon-fill"></i>
+                    </button>
+                    
+                    <!-- Dil Seçimi -->
+                    <div class="dropdown me-2">
+                        <button class="btn btn-outline-light dropdown-toggle" type="button" id="languageDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <span th:text="${#locale.language == 'tr' ? 'TR' : 'EN'}">Dil</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="languageDropdown">
+                            <li><a class="dropdown-item" th:href="@{/surveys/{id}(id=${survey.id},lang=tr)}">Türkçe</a></li>
+                            <li><a class="dropdown-item" th:href="@{/surveys/{id}(id=${survey.id},lang=en)}">English</a></li>
+                        </ul>
+                    </div>
+                    
+                    <!-- Kullanıcı Bilgisi -->
+                    <span class="navbar-text text-white ms-2" th:if="${loggedInUser != null}">
+                        <i class="bi bi-person-circle"></i> <span th:text="${loggedInUser}">Kullanıcı</span>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h2>Anket Detayları</h2>
+            </div>
+            <div class="card-body">
+                <!-- Hata ve Başarı Mesajları -->
+                <div th:if="${success}" class="alert alert-success" th:text="${success}">Başarılı!</div>
+                <div th:if="${error}" class="alert alert-danger" th:text="${error}">Hata!</div>
+                
+                <!-- Anket Detayları -->
+                <div th:if="${survey != null}">
+                    <h3 th:text="${survey.title}">Anket Başlığı</h3>
+                    <p class="lead" th:text="${survey.description}">Anket açıklaması</p>
+                    
+                    <div th:if="${!survey.active}" class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle-fill"></i> Bu anket artık aktif değil.
+                    </div>
+                    
+                    <!-- Anketin Sahibiyse Ek Seçenekler -->
+                    <div th:if="${isOwner}" class="mb-4">
+                        <div class="alert alert-info">
+                            <p><i class="bi bi-info-circle"></i> Bu anketin sahibisiniz.</p>
+                            <a th:href="@{/surveys/{id}/results(id=${survey.id})}" class="btn btn-info">
+                                <i class="bi bi-bar-chart-fill"></i> Sonuçları Görüntüle
+                            </a>
+                            <form th:if="${survey.active}" th:action="@{/surveys/{id}/end(id=${survey.id})}" method="post" class="d-inline">
+                                <button type="submit" class="btn btn-warning" onclick="return confirm('Anketi sonlandırmak istediğinize emin misiniz?')">
+                                    <i class="bi bi-x-circle-fill"></i> Anketi Sonlandır
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    
+                    <!-- Zaten Oy Verilmiş Mesajı -->
+                    <div th:if="${hasVoted && survey.active && !isOwner}" class="alert alert-info mb-4">
+                        <i class="bi bi-info-circle-fill"></i> Bu ankete zaten oy verdiniz. Sonuçları görmek için anket sahibinin sonuçları paylaşmasını bekleyin.
+                    </div>
+                    
+                    <!-- Oy Verme Formu - Sadece henüz oy vermemişse göster -->
+                    <form th:if="${survey.active && !isOwner && !hasVoted && survey.questions != null && !survey.questions.isEmpty()}" 
+                          th:action="@{/surveys/{id}/vote(id=${survey.id})}" method="post">
+                          
+                        <div class="progress mb-4">
+                            <div id="progressBar" class="progress-bar" role="progressbar" style="width: 0%;" 
+                                 aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                        </div>
+                          
+                        <div class="mb-4" th:each="question, questionStat : ${survey.questions}">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 th:text="${question.text}">Soru</h5>
+                                    <span class="text-muted" th:text="${questionStat.count + ' / ' + survey.questions.size()}">1/10</span>
+                                </div>
+                                <div class="card-body">
+                                    <div th:each="option : ${question.options}" class="form-check">
+                                        <input class="form-check-input question-option" type="radio" 
+                                               th:name="${'option-' + question.id}" 
+                                               th:id="${'option-' + question.id + '-' + option.id}" 
+                                               th:value="${option.id}"
+                                               th:attr="data-question=${questionStat.index}"
+                                               required>
+                                        <label class="form-check-label" 
+                                               th:for="${'option-' + question.id + '-' + option.id}" 
+                                               th:text="${option.text}">Seçenek</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2 mb-3">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle-fill"></i> Oy Ver
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <!-- Soru Yok ise -->
+                    <div th:if="${survey.questions == null || survey.questions.isEmpty()}" class="alert alert-info">
+                        <p>Bu ankette soru bulunmamaktadır.</p>
+                    </div>
+                </div>
+                
+                <!-- Anket Yok ise -->
+                <div th:if="${survey == null}" class="alert alert-danger">
+                    <p>Anket bulunamadı veya model'e eklenmedi.</p>
+                </div>
+            </div>
+            <div class="card-footer">
+                <a th:href="@{/surveys}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Anketlere Dön
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Scripts -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Karanlık Mod Düğmesi
+            const darkModeToggle = document.getElementById('darkModeToggle');
+            if (darkModeToggle) {
+                const htmlElement = document.documentElement;
+                const iconElement = darkModeToggle.querySelector('i');
+                
+                // Sayfa yüklendiğinde kullanıcı tercihini kontrol et
+                const darkMode = localStorage.getItem('darkMode') === 'true';
+                if (darkMode) {
+                    htmlElement.setAttribute('data-bs-theme', 'dark');
+                    if (iconElement) {
+                        iconElement.classList.remove('bi-moon-fill');
+                        iconElement.classList.add('bi-sun-fill');
+                    }
+                }
+                
+                // Karanlık mod düğmesi tıklama olayı
+                darkModeToggle.addEventListener('click', function() {
+                    const isDarkMode = htmlElement.getAttribute('data-bs-theme') === 'dark';
+                    
+                    if (isDarkMode) {
+                        htmlElement.removeAttribute('data-bs-theme');
+                        if (iconElement) {
+                            iconElement.classList.remove('bi-sun-fill');
+                            iconElement.classList.add('bi-moon-fill');
+                        }
+                        localStorage.setItem('darkMode', 'false');
+                    } else {
+                        htmlElement.setAttribute('data-bs-theme', 'dark');
+                        if (iconElement) {
+                            iconElement.classList.remove('bi-moon-fill');
+                            iconElement.classList.add('bi-sun-fill');
+                        }
+                        localStorage.setItem('darkMode', 'true');
+                    }
+                });
+            }
+            
+            // İlerleme çubuğu işlemleri
+            const progressBar = document.getElementById('progressBar');
+            const questionOptions = document.querySelectorAll('.question-option');
+            
+            if (progressBar && questionOptions.length > 0) {
+                // Sayfa yüklendiğinde ilerleme çubuğunu güncelle
+                updateProgress();
+                
+                // Her seçenek değişikliğinde ilerleme çubuğunu güncelle
+                questionOptions.forEach(option => {
+                    option.addEventListener('change', updateProgress);
+                });
+            }
+        });
+        
+        // İlerleme çubuğunu güncelleme fonksiyonu
+        function updateProgress() {
+            const progressBar = document.getElementById('progressBar');
+            if (!progressBar) return;
+            
+            const totalQuestions = document.querySelectorAll('.card-header h5').length;
+            let answeredQuestions = 0;
+            
+            // Yanıtlanan soruları say
+            const questionGroups = {};
+            document.querySelectorAll('.question-option:checked').forEach(option => {
+                const questionId = option.getAttribute('name');
+                questionGroups[questionId] = true;
+            });
+            
+            answeredQuestions = Object.keys(questionGroups).length;
+            
+            // İlerleme yüzdesini hesapla
+            const progressPercentage = Math.round((answeredQuestions / (totalQuestions || 1)) * 100);
+            
+            // İlerleme çubuğunu güncelle
+            progressBar.style.width = progressPercentage + '%';
+            progressBar.setAttribute('aria-valuenow', progressPercentage);
+            progressBar.textContent = progressPercentage + '%';
+            
+            // Renk değişimi (opsiyonel)
+            if (progressPercentage === 100) {
+                progressBar.classList.remove('bg-primary');
+                progressBar.classList.add('bg-success');
+            } else {
+                progressBar.classList.remove('bg-success');
+                progressBar.classList.add('bg-primary');
+            }
+        }
+    </script>
+</body>
+</html>

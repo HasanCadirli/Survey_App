@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title th:text="#{survey.create.title}">Anket Oluştur</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" th:href="@{/css/style.css}"/>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container">
+        <a class="navbar-brand" href="#">Anket Sistemi</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item">
+                    <a class="nav-link" th:href="@{/surveys}">Anketler</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" th:href="@{/surveys/my-surveys}">Kendi Anketlerim</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" th:href="@{/surveys/create}">Yeni Anket Oluştur</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" th:href="@{/rewards}">
+                        <i class="bi bi-coin"></i> Puanlarım
+                    </a>
+                </li>
+            </ul>
+            <div class="d-flex align-items-center">
+                <!-- Karanlık Mod Düğmesi -->
+                <button id="darkModeToggle" class="btn btn-outline-light me-2">
+                    <i class="bi bi-moon-fill"></i>
+                </button>
+                
+                <!-- Dil Seçimi -->
+                <div class="dropdown me-2">
+                    <button class="btn btn-outline-light dropdown-toggle" type="button" id="languageDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <span th:text="${#locale.language == 'tr' ? 'TR' : 'EN'}">Dil</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="languageDropdown">
+                        <li><a class="dropdown-item" th:href="@{/surveys/create(lang=tr)}">Türkçe</a></li>
+                        <li><a class="dropdown-item" th:href="@{/surveys/create(lang=en)}">English</a></li>
+                    </ul>
+                </div>
+                
+                <!-- Kullanıcı Bilgisi -->
+                <span class="text-light">
+                    <i class="bi bi-person-fill"></i> <span th:text="${loggedInUser}">Kullanıcı</span>
+                </span>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="container mt-4">
+    <div th:if="${error}" class="alert alert-danger" th:text="${error}">Hata!</div>
+    
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h2>Anket Oluştur</h2>
+            <button type="button" class="btn btn-outline-primary" id="previewButton">
+                <i class="bi bi-eye-fill"></i> Önizleme
+            </button>
+        </div>
+        <div class="card-body">
+            <form id="surveyForm" th:action="@{/surveys/create}" method="post">
+                <div class="mb-3">
+                    <label for="title" class="form-label">Anket Başlığı:</label>
+                    <input type="text" class="form-control" id="title" name="title" required/>
+                </div>
+                <div class="mb-3">
+                    <label for="description" class="form-label">Açıklama:</label>
+                    <textarea class="form-control" id="description" name="description" rows="3" required></textarea>
+                </div>
+
+                <!-- İlerleme Çubuğu -->
+                <div class="progress mb-4">
+                    <div id="progressBar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                </div>
+
+                <!-- Dinamik Soru Ekleme Bölümü -->
+                <div id="questions-container">
+                    <h3>Sorular</h3>
+                    <div class="question-group card mb-3" id="question-1">
+                        <div class="card-header">
+                            <h5>Soru 1</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label for="question-text-1" class="form-label">Soru Metni:</label>
+                                <input type="text" class="form-control question-text" id="question-text-1" name="questions[0].text" required/>
+                            </div>
+                            <h6>Seçenekler</h6>
+                            <div class="option-group">
+                                <div class="mb-2">
+                                    <input type="text" class="form-control option-text" name="questions[0].options[0].text" placeholder="Seçenek 1" required/>
+                                </div>
+                                <div class="mb-2">
+                                    <input type="text" class="form-control option-text" name="questions[0].options[1].text" placeholder="Seçenek 2" required/>
+                                </div>
+                                <div class="mb-2">
+                                    <input type="text" class="form-control option-text" name="questions[0].options[2].text" placeholder="Seçenek 3 (isteğe bağlı)" />
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="addOption(1)">
+                                <i class="bi bi-plus-circle"></i> Seçenek Ekle
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <button type="button" class="btn btn-outline-success" onclick="addQuestion()">
+                        <i class="bi bi-plus-circle"></i> Soru Ekle
+                    </button>
+                </div>
+                
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary">Anketi Oluştur</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div class="mb-3">
+        <a th:href="@{/surveys}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Geri Dön
+        </a>
+    </div>
+</div>
+
+<!-- Önizleme Modal -->
+<div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="previewModalLabel">Anket Önizleme</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <h3 id="previewTitle">Anket Başlığı</h3>
+                <p id="previewDescription">Anket açıklaması</p>
+                
+                <div id="previewQuestions">
+                    <!-- Sorular burada dinamik olarak gösterilecek -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap JS ve Popper.js -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    let questionCount = 1;
+    let optionCount = {};
+    optionCount[1] = 3; // İlk soru için 3 seçenek varsayılan
+    
+    function updateProgressBar() {
+        const totalQuestions = questionCount;
+        const completedQuestions = document.querySelectorAll('.question-text').length;
+        const progressPercentage = Math.min(100, Math.round((completedQuestions / Math.max(1, totalQuestions)) * 100));
+        
+        const progressBar = document.getElementById('progressBar');
+        progressBar.style.width = progressPercentage + '%';
+        progressBar.setAttribute('aria-valuenow', progressPercentage);
+        progressBar.textContent = progressPercentage + '%';
+    }
+
+    function addQuestion() {
+        questionCount++;
+        const container = document.getElementById('questions-container');
+        const questionDiv = document.createElement('div');
+        questionDiv.className = 'question-group card mb-3';
+        questionDiv.id = `question-${questionCount}`;
+        questionDiv.innerHTML = `
+            <div class="card-header">
+                <h5>Soru ${questionCount}</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="question-text-${questionCount}" class="form-label">Soru Metni:</label>
+                    <input type="text" class="form-control question-text" id="question-text-${questionCount}" name="questions[${questionCount-1}].text" required/>
+                </div>
+                <h6>Seçenekler</h6>
+                <div class="option-group">
+                    <div class="mb-2">
+                        <input type="text" class="form-control option-text" name="questions[${questionCount-1}].options[0].text" placeholder="Seçenek 1" required/>
+                    </div>
+                    <div class="mb-2">
+                        <input type="text" class="form-control option-text" name="questions[${questionCount-1}].options[1].text" placeholder="Seçenek 2" required/>
+                    </div>
+                    <div class="mb-2">
+                        <input type="text" class="form-control option-text" name="questions[${questionCount-1}].options[2].text" placeholder="Seçenek 3 (isteğe bağlı)" />
+                    </div>
+                </div>
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="addOption(${questionCount})">
+                    <i class="bi bi-plus-circle"></i> Seçenek Ekle
+                </button>
+            </div>
+        `;
+        container.appendChild(questionDiv);
+        optionCount[questionCount] = 3;
+        updateProgressBar();
+    }
+
+    function addOption(questionIndex) {
+        const optionGroup = document.querySelector(`#question-${questionIndex} .option-group`);
+        const optionIndex = optionCount[questionIndex] || 3;
+        const optionDiv = document.createElement('div');
+        optionDiv.className = 'mb-2';
+        
+        const newOption = document.createElement('input');
+        newOption.type = 'text';
+        newOption.className = 'form-control option-text';
+        newOption.name = `questions[${questionIndex-1}].options[${optionIndex}].text`;
+        newOption.placeholder = `Seçenek ${optionIndex + 1} (isteğe bağlı)`;
+        
+        optionDiv.appendChild(newOption);
+        optionGroup.appendChild(optionDiv);
+        optionCount[questionIndex] = optionIndex + 1;
+    }
+    
+    // Önizleme fonksiyonu
+    document.getElementById('previewButton').addEventListener('click', function() {
+        const title = document.getElementById('title').value || 'Anket Başlığı';
+        const description = document.getElementById('description').value || 'Anket açıklaması';
+        
+        document.getElementById('previewTitle').textContent = title;
+        document.getElementById('previewDescription').textContent = description;
+        
+        const previewQuestions = document.getElementById('previewQuestions');
+        previewQuestions.innerHTML = '';
+        
+        // Tüm soruları ve seçenekleri topla
+        const questions = document.querySelectorAll('.question-group');
+        questions.forEach((questionDiv, questionIndex) => {
+            const questionText = questionDiv.querySelector('.question-text').value;
+            if (!questionText) return;
+            
+            const questionContainer = document.createElement('div');
+            questionContainer.className = 'mb-4';
+            
+            const questionTitle = document.createElement('h5');
+            questionTitle.textContent = `Soru ${questionIndex + 1}: ${questionText}`;
+            questionContainer.appendChild(questionTitle);
+            
+            const optionsList = document.createElement('div');
+            optionsList.className = 'ms-3';
+            
+            const options = questionDiv.querySelectorAll('.option-text');
+            options.forEach((option, optionIndex) => {
+                if (!option.value) return;
+                
+                const optionItem = document.createElement('div');
+                optionItem.className = 'form-check';
+                
+                const radioInput = document.createElement('input');
+                radioInput.className = 'form-check-input';
+                radioInput.type = 'radio';
+                radioInput.name = `preview-question-${questionIndex}`;
+                radioInput.id = `preview-option-${questionIndex}-${optionIndex}`;
+                radioInput.disabled = true;
+                
+                const label = document.createElement('label');
+                label.className = 'form-check-label';
+                label.htmlFor = `preview-option-${questionIndex}-${optionIndex}`;
+                label.textContent = option.value;
+                
+                optionItem.appendChild(radioInput);
+                optionItem.appendChild(label);
+                optionsList.appendChild(optionItem);
+            });
+            
+            questionContainer.appendChild(optionsList);
+            previewQuestions.appendChild(questionContainer);
+        });
+        
+        // Önizleme modalını göster
+        const previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
+        previewModal.show();
+    });
+    
+    // Karanlık Mod Scripti
+    document.addEventListener('DOMContentLoaded', function() {
+        const darkModeToggle = document.getElementById('darkModeToggle');
+        const htmlElement = document.documentElement;
+        const iconElement = darkModeToggle.querySelector('i');
+        
+        // Sayfa yüklendiğinde kullanıcı tercihini kontrol et
+        const darkMode = localStorage.getItem('darkMode') === 'true';
+        if (darkMode) {
+            htmlElement.setAttribute('data-bs-theme', 'dark');
+            iconElement.classList.remove('bi-moon-fill');
+            iconElement.classList.add('bi-sun-fill');
+        }
+        
+        // Karanlık mod düğmesi tıklama olayı
+        darkModeToggle.addEventListener('click', function() {
+            const isDarkMode = htmlElement.getAttribute('data-bs-theme') === 'dark';
+            
+            if (isDarkMode) {
+                htmlElement.removeAttribute('data-bs-theme');
+                iconElement.classList.remove('bi-sun-fill');
+                iconElement.classList.add('bi-moon-fill');
+                localStorage.setItem('darkMode', 'false');
+            } else {
+                htmlElement.setAttribute('data-bs-theme', 'dark');
+                iconElement.classList.remove('bi-moon-fill');
+                iconElement.classList.add('bi-sun-fill');
+                localStorage.setItem('darkMode', 'true');
+            }
+        });
+        
+        // İlk yükleme için ilerleme çubuğunu güncelle
+        updateProgressBar();
+    });
+</script>
+</body>
+</html>
